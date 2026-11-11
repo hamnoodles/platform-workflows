@@ -99,6 +99,47 @@ services:
 Keep to at most **20 buckets** `<name>-*`: Silo can't enforce a count, so the platform reports
 more and the admin follows up. Buckets are copied offsite with the platform's backups.
 
+### Letting objects expire (lifecycle rules)
+
+Needs policy bundle **2.3.0** (platform release 1.2.0). Objects in a bucket can expire: declare
+the rules under `s3` instead of `s3: true`:
+
+```yaml
+services:
+  s3:
+    lifecycle:
+      - bucket: shop            # <name> or <name>-<suffix>
+        prefix: exports/        # optional: only objects whose name starts with it
+        expire_days: 30
+      - bucket: shop-tmp        # no prefix: every object in the bucket
+        expire_days: 1
+```
+
+- **Fields**: `bucket` is your app's bucket `<name>` or `<name>-<suffix>` (lower-case letters,
+  digits and single hyphens; no dots); `prefix` is a plain object name prefix (no leading `/`, no
+  `*`, `?` or `[`, no `..`); `expire_days` is a whole number from 1 to 3650. At most **10 rules**
+  per app; two rules with the same bucket and prefix are refused. The policy checks all of it in
+  CI and again on the server.
+- **What expires**: an object whose last write (upload or overwrite, not a read) is older than
+  `expire_days`. The storage server removes it in its background lifecycle pass, so expect it
+  within about a day after the period, not to the minute.
+- **Not reversible on the server**: an expired object is gone there. The offsite copy keeps what
+  it has already pulled (it never mirrors deletions) until its own snapshot retention drops it,
+  so the platform admin can recover an object for a while. Lifecycle rules are no way to delete
+  data everywhere.
+- **The manifest is the whole truth**: each deploy sets exactly the declared rules on every
+  bucket of your app and removes any other rule. A rule removed from the manifest is gone after the
+  next deploy; objects that would have expired stay. A declared bucket that doesn't exist yet is
+  created by the deploy.
+- **Overlapping prefixes** in one bucket (`tmp/` 1 day, `tmp/large/` 7 days) both apply: an object
+  matching both expires at the shorter period.
+- **Lowering a period** (30 → 7 days) removes every object older than the new period under that
+  prefix at the next pass, all at once.
+- **Removing `s3`** (or offboarding) leaves the rules in place, like the data. `platform app
+  purge` removes the buckets with their rules.
+- **Incomplete multipart uploads** are removed by the storage server after 24 hours, in every
+  bucket, without a rule; an upload that takes longer than that is aborted.
+
 ## Limits
 
 | Limit | Value |
