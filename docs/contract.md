@@ -24,7 +24,8 @@ Find the rule ID below. Your editor can check `platform.yaml` while you type: th
 | `abroad_paths` | at most 10 paths on your own host reachable from outside Germany (webhooks), each with everything below it; never `/` ([Operations](operations.md#access-from-outside-germany)) |
 | `services.postgres.extensions` | the database `<name>`; extensions from the allowlist ([Shared services](services.md#postgres)) |
 | `services.redis` | `true`: a Redis user for keys and channels under `<name>:` |
-| `services.s3` | `true`: the bucket `<name>`; your app may create and delete buckets `<name>-*` |
+| `services.s3` | `true`: the bucket `<name>`; your app may create and delete buckets `<name>-*`. Or an object with `lifecycle` rules (at most 10) that expire objects ([Shared services](services.md#letting-objects-expire-lifecycle-rules)) |
+| `services.rabbitmq` | `true` or `{limits: {connections, queues, queue_bytes}}`: a vhost `<name>` with the user `app-<name>` ([RabbitMQ](services.md#rabbitmq)) |
 | `secrets` | names (`^[A-Z][A-Z0-9_]*$`, at most 50) of your own secrets ([Secrets](secrets.md)) |
 | `deploy.rollback` | `false` keeps a failing version running for debugging (default `true`) |
 
@@ -53,6 +54,8 @@ Removing a service revokes access and keeps the data.
 | APP-M-ACCESS | `forward`/`oidc` without `access.groups`, `none` with `access`, or managers without an own group | add groups; remove `access` with `auth: none`; add a `<name>-…` group for managers |
 | APP-M-CALLBACK | `auth_callbacks` without `auth: oidc`, or a path containing `..` | use `auth: oidc`, or plain paths like `/auth/callback` |
 | APP-M-ABROAD | `abroad_paths` contains `/`, or a path with `.`, `..` or empty segments | list only the paths foreign services call, like `/webhooks/stripe` |
+| APP-M-LIFECYCLE | a lifecycle rule names a bucket that isn't `<name>` or `<name>-<suffix>`, its prefix has a `..` segment, two rules share bucket and prefix, or there are more than 10 rules | use your own buckets, plain prefixes, one rule per bucket and prefix |
+| APP-M-RABBITMQ | a RabbitMQ limit is above its maximum (200 connections, 200 queues, 1 GiB per queue), or `queues × queue_bytes` is above 8 GiB | lower the limits ([RabbitMQ](services.md#rabbitmq)) |
 
 ## Compose rules
 
