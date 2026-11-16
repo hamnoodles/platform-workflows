@@ -1,6 +1,6 @@
 # Shared services
 
-The platform runs one Postgres, one Redis and one S3 store (Silo) for all apps. Declare what
+The platform runs one Postgres, one Redis, one S3 store (Silo) and one RabbitMQ broker for all apps. Declare what
 your app uses in `platform.yaml` → `services`, put the services that use them on the `storage`
 network, and read the credentials from files ([Secrets](secrets.md)). Removing a service from
 `platform.yaml` revokes access and keeps the data.
@@ -14,6 +14,7 @@ Fixed values, fine as environment variables:
 | Postgres | host `storage-postgres`, port `5432`, database and user = app name | `POSTGRES_PASSWORD`, `DATABASE_URL` |
 | Redis | host `storage-redis`, port `6379`, user = app name | `REDIS_PASSWORD`, `REDIS_URL` |
 | Silo (S3) | endpoint `http://storage-silo:9000`, region `us-east-1`, path-style addressing, bucket = app name | `S3_ACCESS_KEY`, `S3_SECRET_KEY` |
+| RabbitMQ | host `storage-rabbitmq`, port `5672` (AMQP 0-9-1 and 1.0, no TLS on the internal network), vhost = app name, user `app-<name>` | `RABBITMQ_PASSWORD`, `RABBITMQ_URL` (`amqp://app-<name>:…@storage-rabbitmq:5672/<name>`) |
 
 ## Postgres
 
@@ -99,6 +100,104 @@ services:
 Keep to at most **20 buckets** `<name>-*`: Silo can't enforce a count, so the platform reports
 more and the admin follows up. Buckets are copied offsite with the platform's backups.
 
+### Letting objects expire (lifecycle rules)
+
+Needs policy bundle **2.3.0** (platform release 1.2.0). Objects in a bucket can expire: declare
+the rules under `s3` instead of `s3: true`:
+
+```yaml
+services:
+  s3:
+    lifecycle:
+      - bucket: shop            # <name> or <name>-<suffix>
+        prefix: exports/        # optional: only objects whose name starts with it
+        expire_days: 30
+      - bucket: shop-tmp        # no prefix: every object in the bucket
+        expire_days: 1
+```
+
+- **Fields**: `bucket` is your app's bucket `<name>` or `<name>-<suffix>` (lower-case letters,
+  digits and single hyphens; no dots); `prefix` is a plain object name prefix (no leading `/`, no
+  `*`, `?` or `[`, no `..`); `expire_days` is a whole number from 1 to 3650. At most **10 rules**
+  per app; two rules with the same bucket and prefix are refused. The policy checks all of it in
+  CI and again on the server.
+- **What expires**: an object whose last write (upload or overwrite, not a read) is older than
+  `expire_days`. The storage server removes it in its background lifecycle pass, so expect it
+  within about a day after the period, not to the minute.
+- **Not reversible on the server**: an expired object is gone there. The offsite copy keeps what
+  it has already pulled (it never mirrors deletions) until its own snapshot retention drops it,
+  so the platform admin can recover an object for a while. Lifecycle rules are no way to delete
+  data everywhere.
+- **The manifest is the whole truth**: each deploy sets exactly the declared rules on every
+  bucket of your app and removes any other rule. A rule removed from the manifest is gone after the
+  next deploy; objects that would have expired stay. A declared bucket that doesn't exist yet is
+  created by the deploy.
+- **Overlapping prefixes** in one bucket (`tmp/` 1 day, `tmp/large/` 7 days) both apply: an object
+  matching both expires at the shorter period.
+- **Lowering a period** (30 → 7 days) removes every object older than the new period under that
+  prefix at the next pass, all at once.
+- **Removing `s3`** (or offboarding) leaves the rules in place, like the data. `platform app
+  purge` removes the buckets with their rules.
+- **Incomplete multipart uploads** are removed by the storage server after 24 hours, in every
+  bucket, without a rule; an upload that takes longer than that is aborted.
+
+## RabbitMQ
+
+Needs policy bundle **2.3.0** (platform release 1.2.0).
+
+```yaml
+services:
+  rabbitmq: true
+  # or, with your own limits (each optional; the defaults below otherwise):
+  # rabbitmq:
+  #   limits: {connections: 50, queues: 50, queue_bytes: 67108864}
+```
+
+| Your app can | Your app cannot |
+|--------------|-----------------|
+| declare, use and delete exchanges, queues and bindings in its vhost `<name>`; publish and consume | open another app's vhost or `/`; manage users, vhosts, limits or policies |
+| classic and quorum queues | streams (refused node-wide); transient non-exclusive queues (refused by RabbitMQ 4) |
+
+Read `RABBITMQ_URL` (or build the URL from the settings and `RABBITMQ_PASSWORD`) when you connect,
+and reconnect with retries: the broker restarts at upgrades.
+
+**Durability.** Messages in a **durable** queue that were published as **persistent** survive a
+restart of the broker. Use **quorum queues** (`x-queue-type: quorum`) for anything that matters, and
+publisher confirms to know a message arrived. Messages are **not backed up**: if the broker's
+volume is lost, the queues come back empty (your vhost, user and limits are rebuilt by the
+platform). RabbitMQ is transport, not storage: anything you can't lose belongs in Postgres or Silo
+until it has been processed.
+
+**Limits.** One broker serves every app, so each vhost has limits that keep one app's backlog from
+blocking the others:
+
+| Limit | Default | Maximum | At the limit |
+|-------|---------|---------|--------------|
+| `connections` | 50 | 200 | a new connection is refused (`530 NOT_ALLOWED … connection limit`) |
+| `queues` | 50 | 200 | declaring another queue fails (`406 PRECONDITION_FAILED … queue limit`) |
+| `queue_bytes` (each queue) | 64 MiB | 1 GiB | publishes to that queue are **refused** (with publisher confirms: a nack); nothing already queued is dropped |
+
+`queues × queue_bytes` may be at most **8 GiB** (e.g. 200 queues of 40 MiB, or 8 queues of 1 GiB);
+the policy checks all of it in CI and again on the server. Lowering a limit below what you use
+deletes nothing: existing connections and queues stay; new ones (or publishes) are refused until
+you are back under it. A queue argument like `x-max-length-bytes` can only lower your cap, not
+raise it. Errors to expect in your logs: `541 … feature flag is disabled` when declaring a stream,
+`541 … transient_nonexcl_queues is deprecated` for a non-durable, non-exclusive queue.
+
+**Removing `rabbitmq`** (or offboarding) deletes your user, which closes your connections; the vhost
+with its queues and messages stays. Adding the service again gives your app a new password for the
+same vhost. `platform app purge` deletes the vhost.
+
+### Looking into your queues (RabbitMQ UI)
+
+`https://rabbitmq.platform.shirtracer.gmbh`, logged in with your platform account. Your app's
+managers and the members of its group `<name>-mq` (created at the first deploy with the broker;
+the managers add people in Authentik like for `<name>-users`) see your vhost only: queues with
+their message and consumer counts, exchanges and bindings. You can look at messages, publish test
+messages, purge and delete queues. You don't see your app's connections (the broker shows them only
+to the platform admin, who can close one for you), users, limits or other apps. A person removed
+from the group loses access within minutes. Purging deletes messages for good.
+
 ## Limits
 
 | Limit | Value |
@@ -107,12 +206,14 @@ more and the admin follows up. Buckets are copied offsite with the platform's ba
 | CPU and memory per app (limits × replicas) | 4 CPUs, 8 GiB |
 | Postgres connections per app | 50 |
 | Buckets per app | 20 |
+| RabbitMQ per app | 50 connections, 50 queues, 64 MiB per queue by default; up to 200, 200, 1 GiB and 8 GiB in all ([RabbitMQ](#rabbitmq)) |
 
 The first two are checked before the deploy ([APP-C-QUOTA-SVC, APP-C-QUOTA-APP](contract.md#images-and-resources)).
 
 ## Stateless apps
 
-Containers have no volumes and are replaced at every deploy. State lives in Postgres or Silo;
+Containers have no volumes and are replaced at every deploy. State lives in Postgres or Silo
+(Redis is a cache, RabbitMQ is transport);
 temporary files go into a `tmpfs` mount:
 
 ```yaml
