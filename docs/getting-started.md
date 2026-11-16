@@ -38,7 +38,7 @@ In `platform.yaml` (all fields: [The contract](contract.md#platformyaml)):
   `secrets:`. Replace `EXAMPLE_API_KEY` in all three (or remove it everywhere); a name left in
   only one place fails the check ([APP-C-SECRET-NAME](contract.md#secrets)). Your app reads
   `/run/secrets/<NAME>`.
-- The same holds for the platform's credentials: remove `DATABASE_URL`, `REDIS_URL` or `S3_*`
+- The same holds for the platform's credentials: remove `DATABASE_URL`, `REDIS_URL`, `S3_*` or `RABBITMQ_URL`
   from `deploy/compose.yaml` when you drop the service.
 
 ## 4. Add your secrets

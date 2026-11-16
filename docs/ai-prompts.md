@@ -23,7 +23,7 @@ What the app does: <one or two sentences, or "keep the example app for now">
 Language/framework: <e.g. Python/FastAPI, Node/Express>
 Login: <forward | oidc | none>
 Who may use it: <platform groups, e.g. name-users>; managers: <platform usernames>
-Shared services: <any of postgres, redis, s3, or none>
+Shared services: <any of postgres, redis, s3, rabbitmq (policy 2.3.0), or none>
 My own secrets (names only): <e.g. STRIPE_API_KEY, or none>
 
 Read these first and follow them exactly:
