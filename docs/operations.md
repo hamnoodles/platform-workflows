@@ -101,8 +101,19 @@ changes (the workflow's release notes say so), compare and take over what applie
 Patch and minor releases of the workflow reach you through `@v1` without any change. Pin
 `@v1.x.y` only if you need an exact version, and move it yourself.
 
+## Explicit domains
+
+Your app's own hostname `<name>.apps.<server domain>` always works. For another hostname set
+`domain:` in `platform.yaml`; where it is allowed and when it gets a certificate depends on the
+server and on `certificate: true` ([Servers](servers.md#what-differs)). With `certificate: true`,
+point the domain's DNS at the server first (A record only, no AAAA): the deploy checks it and is
+refused before any change otherwise. Without it the domain is served with the server's default
+certificate (behind a CDN in "Full" mode). Changing or removing `domain` takes effect with the
+deploy; the old hostname stops answering.
+
 ## Access from outside Germany
 
+This section applies to servers with the geo-filter (`apps`); see [Servers](servers.md#what-differs).
 The platform answers only requests from addresses in Germany. Anyone else gets `403` with a
 short page ("Zugriff nur aus Deutschland. / Access is only possible from Germany."), for every
 app, the login and Grafana. Deploys are not affected (GitHub's runners reach the platform), and
@@ -135,3 +146,7 @@ action `offboard`, and type the app name as confirmation. The platform then keep
 database backup, keeps the buckets until the offsite copy has them, and removes the app, its
 route, credentials and access to the shared services. The name stays bound to your repository
 until the admin purges the kept data ([Registration](registration.md#retiring-an-app)).
+
+The offboard request goes to the server your workflow names (`platform`, default `apps`). To move
+an app to another server, offboard it first, then change `platform`
+([Servers](servers.md#moving-an-app-to-another-server)).

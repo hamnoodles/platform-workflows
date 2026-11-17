@@ -1,7 +1,8 @@
 # Registration
 
-Apps aren't registered one by one. The platform admin registers **owners**: the organization
-`shirtracer` is registered, and a personal account is registered once on request. Any repository
+Apps aren't registered one by one. The platform admin registers **owners**, on each server
+separately ([Servers](servers.md)): the organization `shirtracer` is registered, and a personal
+account is registered once on request. Any repository
 of a registered owner can deploy a new app; its first successful check **binds** the app name to
 that repository, so no other repository can take the name or the app's data afterwards.
 
@@ -40,7 +41,8 @@ registered owner (within that owner's limit).
 |----------|------------------|
 | deploy an app from a new repository (keeping its data) | move the app name to the new repository first |
 | keep a name for a repository before its first push | bind the name to it |
-| a custom domain instead of `<name>.apps.platform.shirtracer.gmbh` | allowlist the domain (and point its DNS record at the platform) |
+| an explicit domain instead of `<name>.apps.platform.shirtracer.gmbh` (server `apps`) | allow it in the server's registry, for your app or for all apps of your owner (a domain and its subdomains); then set `domain:` and, for a certificate, `certificate: true` once its DNS points at the server. On `shops` any free domain works without asking |
+| deploy to another server | register your owner there ([Servers](servers.md#moving-an-app-to-another-server)) |
 | a Postgres extension that isn't on the list | check whether the platform's image ships it |
 | Grafana access for your team (logs, metrics) | add your platform users to `grafana-viewers` |
 | start and restart your app yourself | add your platform users to `arcane-operators` |

@@ -18,6 +18,7 @@ jobs:
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}
+      # platform: apps # the server: apps (default) or shops; workflow v1.1.0 or later
     secrets:
       PLATFORM_SECRETS: ${{ toJSON(secrets) }}
 ```
@@ -35,7 +36,8 @@ them in the log.
 | `action` | `deploy` | `deploy`, or `offboard` (only by hand, with `confirm`) |
 | `confirm` | | offboard only: the app name |
 | `environment` | `production` | GitHub Environment the request jobs run in |
-| `controller-url` | `https://deploy.platform.shirtracer.gmbh` | the platform's deploy API |
+| `platform` | `apps` | the server the app deploys to (or is offboarded from): `apps` or `shops`; it selects the policy bundle, the deploy API and the token's audience together ([Servers](docs/servers.md)); v1.1.0 or later |
+| `controller-url` | | deprecated: leave it out; if set, it must equal the selected server's deploy URL |
 | `dockerfile`, `context` | `Dockerfile`, `.` | the image build |
 
 App secrets: the names listed in `platform.yaml` → `secrets`, from the `production` Environment
@@ -45,10 +47,10 @@ personal-account repositories.
 
 ## Who can deploy
 
-Anyone can call this workflow; only repositories of owners registered on the platform deploy. The
-platform checks the token's owner against its registry, binds each app name to the repository
-that first deployed it, checks the default branch, and that the request came from this workflow
-at an accepted ref. Personal accounts install the platform's GitHub App once and grant the
+Anyone can call this workflow; only repositories of owners registered on the server deploy. Each
+server accepts only identity tokens issued for its own deploy URL; it checks the token's owner
+against its registry, binds each app name to the repository that first deployed it, checks the
+default branch, and that the request came from this workflow at an accepted ref. Personal accounts install the platform's GitHub App once and grant the
 platform read access to each image package; the first deploy says what is missing.
 
 ## Versions
