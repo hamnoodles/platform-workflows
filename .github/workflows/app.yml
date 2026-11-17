@@ -7,6 +7,13 @@
 # that the request came from this workflow at a released ref). Call it at @v1 (the moving major
 # tag) or at an exact release @v1.x.y, never at a branch. Third-party actions are pinned by
 # commit. Nothing secret lives here.
+#
+# Several servers (D35): the input `platform` names the server the app deploys to (or is
+# offboarded from). Its profile in PLATFORM_SERVERS gives the deploy URL (also the identity
+# token's audience) and the env variable holding its policy bundle pin, so one server's bundle
+# never goes with another server's URL or audience. POLICY_BUNDLE is the apps server's pin;
+# another server's pin is POLICY_BUNDLE_<SERVER>. A known server without a profile (null) is
+# not available yet.
 name: platform app
 
 "on":
@@ -24,10 +31,14 @@ name: platform app
         description: GitHub Environment whose secrets are sent
         type: string
         default: production
-      controller-url:
-        description: deploy API base URL (also the identity token's audience)
+      platform:
+        description: "the server: apps (default) or shops"
         type: string
-        default: https://deploy.platform.shirtracer.gmbh
+        default: apps
+      controller-url:
+        description: "deprecated: the server's deploy URL comes from platform; if set, it must equal it"
+        type: string
+        default: ""
       dockerfile:
         type: string
         default: Dockerfile
@@ -46,11 +57,17 @@ name: platform app
 permissions: {}
 
 env:
-  # The policy bundle every app is validated with: <registry path>:<version>@sha256:<digest>
-  # Must equal the platform's pin: the platform refuses requests validated with another
-  # version and its admin check compares both.
+  # The apps server's policy bundle: <registry path>:<version>@sha256:<digest>
+  # Must equal the server's pin: the server refuses requests validated with another version
+  # and its admin check compares both (another server: POLICY_BUNDLE_<SERVER>, its own package
+  # platform-policy-<server>).
   POLICY_BUNDLE: >-
     ghcr.io/svenm3/platform-policy:2.3.0@sha256:3492de8cf6bbc3552460378fc8f24e57f1f6f85c812f0e58f08018d3ba583276
+  # The known servers: {server: {deploy_url, bundle (the env variable of its pin)} | null}.
+  # null: known, not available yet (its domain and bundle come with its release).
+  PLATFORM_SERVERS: >-
+    {"apps": {"deploy_url": "https://deploy.platform.shirtracer.gmbh", "bundle": "POLICY_BUNDLE"},
+    "shops": null}
   CONFTEST_IMAGE: >-
     openpolicyagent/conftest:v0.70.1@sha256:82f23e0e1f3faf2f3798f4b1974676c1aed96b05c6656ec6820435c31867c532
 
@@ -64,7 +81,57 @@ jobs:
       secret_names: ${{ steps.manifest.outputs.secret_names }}
       policy_version: ${{ steps.bundle.outputs.version }}
       deploy_branch: ${{ steps.branch.outputs.default }}
+      server: ${{ steps.server.outputs.server }}
+      deploy_url: ${{ steps.server.outputs.deploy_url }}
     steps:
+      # The server's profile: deploy URL (= audience) and bundle pin, before anything is built or
+      # sent. Tested by tests/test_server_select.py.
+      - name: Server
+        id: server
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          CONTROLLER_URL_INPUT: ${{ inputs.controller-url }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+
+          def fail(message):
+              print("::error::" + message)
+              sys.exit(1)
+
+          env = os.environ
+          servers = json.loads(env["PLATFORM_SERVERS"])
+          known = ", ".join(servers)
+          server = (env.get("PLATFORM") or "apps").strip()
+          if server not in servers:
+              fail("unknown platform %s (known: %s)" % (server, known))
+          profile = servers[server]
+          if not profile:
+              fail("the server %s isn't available yet (known: %s)" % (server, known))
+          url = str(profile.get("deploy_url") or "").rstrip("/")
+          if not re.fullmatch(r"https://deploy\.[a-z0-9.-]+", url):
+              fail("no deploy URL for %s in PLATFORM_SERVERS" % server)
+          variable = str(profile.get("bundle") or "")
+          bundle = env.get(variable, "").strip() if variable else ""
+          package = "platform-policy" if server == "apps" else "platform-policy-" + server
+          pin = (r"ghcr\.io/[a-z0-9_.-]+/%s:([0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?)@sha256:[0-9a-f]{64}"
+                 % re.escape(package))
+          match = re.fullmatch(pin, bundle)
+          if not match:
+              fail("no policy bundle pinned for %s (%s)" % (server, variable or "bundle"))
+          given = (env.get("CONTROLLER_URL_INPUT") or "").strip().rstrip("/")
+          if given:
+              if given != url:
+                  fail("controller-url %s is not the deploy URL of %s; use the platform input only"
+                       % (given, server))
+              print("::warning::controller-url is deprecated; the platform input selects the server")
+          with open(env["GITHUB_OUTPUT"], "a") as out:
+              out.write("server=%s\ndeploy_url=%s\nbundle=%s\nversion=%s\n"
+                        % (server, url, bundle, match.group(1)))
+          with open(env.get("GITHUB_STEP_SUMMARY", os.devnull), "a") as summary:
+              summary.write("### Server\n\n%s: %s, policy %s\n" % (server, url, match.group(1)))
+          PY
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -82,20 +149,24 @@ jobs:
 
       - name: Policy bundle pin
         id: bundle
+        env:
+          BUNDLE: ${{ steps.server.outputs.bundle }}
         run: |
-          pin='^ghcr\.io/[a-z0-9_.-]+/platform-policy:[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?@sha256:[0-9a-f]{64}$'
-          if ! printf '%s' "$POLICY_BUNDLE" | grep -Eq "$pin"; then
-            echo "::error::no policy bundle pinned in the platform workflow (POLICY_BUNDLE)"
+          pin='^ghcr\.io/[a-z0-9_.-]+/platform-policy(-[a-z0-9]+)?:[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?@sha256:[0-9a-f]{64}$'
+          if ! printf '%s' "$BUNDLE" | grep -Eq "$pin"; then
+            echo "::error::no policy bundle pinned in the platform workflow"
             exit 1
           fi
-          version="${POLICY_BUNDLE#*:}"
+          version="${BUNDLE#*:}"
           echo "version=${version%@*}" >>"$GITHUB_OUTPUT"
 
       # The bundle is public: no registry login.
       - name: Pull the policy bundle
+        env:
+          BUNDLE: ${{ steps.server.outputs.bundle }}
         run: |
           docker run --rm -v "$RUNNER_TEMP:/out" -w /out \
-            "$CONFTEST_IMAGE" pull "oci://$POLICY_BUNDLE" -p bundle
+            "$CONFTEST_IMAGE" pull "oci://$BUNDLE" -p bundle
 
       - name: Validate platform.yaml and deploy/compose.yaml
         env:
@@ -220,7 +291,7 @@ jobs:
       - name: Send the deploy request
         env:
           ACTION: deploy
-          CONTROLLER_URL: ${{ inputs.controller-url }}
+          CONTROLLER_URL: ${{ needs.validate.outputs.deploy_url }}
           APP: ${{ needs.validate.outputs.app }}
           IMAGE: ${{ needs.build.outputs.image }}
           POLICY_VERSION: ${{ needs.validate.outputs.policy_version }}
@@ -326,7 +397,7 @@ jobs:
       - name: Send the offboard request
         env:
           ACTION: offboard
-          CONTROLLER_URL: ${{ inputs.controller-url }}
+          CONTROLLER_URL: ${{ needs.validate.outputs.deploy_url }}
           APP: ${{ needs.validate.outputs.app }}
           CONFIRM: ${{ inputs.confirm }}
         run: *request
