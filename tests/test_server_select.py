@@ -76,10 +76,18 @@ def test_the_server_step_comes_first_and_reads_the_inputs():
 
 # --- US2: an app chooses its server ---------------------------------------------------------------
 
-def test_shops_is_known_but_not_available_yet(tmp_path):
-    rc, log, out = run(tmp_path, "shops")
+def test_shops_has_its_own_url_audience_and_pin(tmp_path):
+    rc, log, out = run(tmp_path, "shops", POLICY_BUNDLE_SHOPS=ENV["POLICY_BUNDLE_SHOPS"])
+    assert rc == 0, log
+    assert out["server"] == "shops" and out["deploy_url"] == "https://deploy.shops.shirtracer.gmbh"
+    assert out["bundle"] == ENV["POLICY_BUNDLE_SHOPS"] and "platform-policy-shops:" in out["bundle"]
+    assert APPS_URL not in out.values() and ENV["POLICY_BUNDLE"] not in out.values()
+
+
+def test_a_known_server_without_a_profile_is_not_available(tmp_path):
+    rc, log, out = run(tmp_path, "testbox", PLATFORM_SERVERS=json.dumps({**TEST_SERVERS, "testbox": None}))
     assert rc == 1 and out == {}
-    assert "::error::the server shops isn't available yet (known: apps, shops)" in log
+    assert "::error::the server testbox isn't available yet (known: apps, testbox, shops)" in log
 
 
 def test_an_unknown_server_names_the_known_ones(tmp_path):

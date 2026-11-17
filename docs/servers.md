@@ -5,26 +5,24 @@ registered owners, its own app names, its own shared services and backups. The r
 must follow ([the contract](contract.md)) are the same on every server; a few values and options
 differ.
 
-Choosing a server needs **workflow v1.1.0 or later** (`@v1` once it is released). Until then every
-app deploys to the apps server.
+Choosing a server needs **workflow v1.1.0 or later**. Until the platform's next release moves `@v1`
+to it, call `@v1.1.0` to deploy to the shops server; apps on the apps server keep `@v1`.
 
 ## Which server
 
 | Server | For | Your app's own hostname |
 |--------|-----|-------------------------|
 | `apps` (default) | internal tools and services of shirtracer | `<name>.apps.platform.shirtracer.gmbh` |
-| `shops` | the shops | `<name>.apps.<the shops server's domain>` (announced with the server) |
+| `shops` | the shops | `<name>.apps.shops.shirtracer.gmbh` |
 
-If you don't know which one, it is `apps`. The shops server is announced when it is available; a
-deploy to it before that fails in the workflow's first step ("the server shops isn't available
-yet").
+If you don't know which one, it is `apps`.
 
 ## Choosing it
 
 In your repository's `.github/workflows/deploy.yml`, under `with:`:
 
 ```yaml
-    uses: shirtracer/platform-workflows/.github/workflows/app.yml@v1
+    uses: shirtracer/platform-workflows/.github/workflows/app.yml@v1.1.0 # @v1 once it moves
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}
@@ -69,6 +67,22 @@ hostname. `certificate` needs workflow v1.1.0 or later.
 The data doesn't move with it: export it before step 1 and import it on the new server. If you
 change `platform` first, the app keeps running on the old server and your workflow can no longer
 offboard it there: ask the admin to remove it.
+
+## The first shops
+
+The shops server is new: the first shop teams are its first users.
+
+1. **Registration**: your GitHub owner must be registered on the shops server. The organization
+   `shirtracer` is; for a personal account ask the platform admin ([Registration](registration.md)).
+2. **Your repository**: from the [template](https://github.com/shirtracer/platform-app-template) as
+   usual; in `.github/workflows/deploy.yml` call `…/app.yml@v1.1.0` with `platform: shops` (above).
+3. **Limits**: none on the shops server; leave `deploy.resources.limits` out or set your own.
+4. **Your domain**: `domain: www.your-shop.example` in `platform.yaml`. Point its DNS at the shops server
+   (an A record for `5.9.113.248`, no AAAA), then add `certificate: true` for a certificate of its own;
+   behind a CDN in "Full" mode the server's default certificate is enough.
+5. **Problems**: something the platform refuses that it shouldn't, or a deploy that fails on the
+   platform's side: tell the platform admin with the workflow run's link. Fixes come as patch
+   releases; nothing in your repository has to change for them.
 
 ## The same name on two servers
 
