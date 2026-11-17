@@ -18,7 +18,7 @@ jobs:
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}
-      # platform: apps # the server: apps (default) or shops; workflow v1.1.0 or later (@v1.1.0 for shops until @v1 moves)
+      # platform: apps # the server: apps (default) or shops
     secrets:
       PLATFORM_SECRETS: ${{ toJSON(secrets) }}
 ```
@@ -36,7 +36,7 @@ them in the log.
 | `action` | `deploy` | `deploy`, or `offboard` (only by hand, with `confirm`) |
 | `confirm` | | offboard only: the app name |
 | `environment` | `production` | GitHub Environment the request jobs run in |
-| `platform` | `apps` | the server the app deploys to (or is offboarded from): `apps` or `shops`; it selects the policy bundle, the deploy API and the token's audience together ([Servers](docs/servers.md)); v1.1.0 or later |
+| `platform` | `apps` | the server the app deploys to (or is offboarded from): `apps` or `shops`; it selects the policy bundle, the deploy API and the token's audience together ([Servers](docs/servers.md)) |
 | `controller-url` | | deprecated: leave it out; if set, it must equal the selected server's deploy URL |
 | `dockerfile`, `context` | `Dockerfile`, `.` | the image build |
 

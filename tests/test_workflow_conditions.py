@@ -87,4 +87,4 @@ def test_the_server_is_chosen_once_by_the_server_step():
 
 def test_the_apps_pin_keeps_its_name_and_version():
     # The admin check of every server reads POLICY_BUNDLE (apps) or POLICY_BUNDLE_<SERVER>.
-    assert "platform-policy:2.3.0@sha256:" in WORKFLOW["env"]["POLICY_BUNDLE"]
+    assert "platform-policy:2.4.0@sha256:" in WORKFLOW["env"]["POLICY_BUNDLE"]

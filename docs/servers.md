@@ -5,8 +5,7 @@ registered owners, its own app names, its own shared services and backups. The r
 must follow ([the contract](contract.md)) are the same on every server; a few values and options
 differ.
 
-Choosing a server needs **workflow v1.1.0 or later**. Until the platform's next release moves `@v1`
-to it, call `@v1.1.0` to deploy to the shops server; apps on the apps server keep `@v1`.
+Every app calls the workflow at `@v1`; the input `platform` chooses the server.
 
 ## Which server
 
@@ -22,7 +21,7 @@ If you don't know which one, it is `apps`.
 In your repository's `.github/workflows/deploy.yml`, under `with:`:
 
 ```yaml
-    uses: shirtracer/platform-workflows/.github/workflows/app.yml@v1.1.0 # @v1 once it moves
+    uses: shirtracer/platform-workflows/.github/workflows/app.yml@v1
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}
@@ -43,7 +42,7 @@ server's deploy URL, otherwise the workflow fails.
 |---|---|---|
 | CPU and memory limits | required on every service; at most 4 CPUs and 8 GiB per service and per app (APP-C-LIMITS, APP-C-QUOTA-SVC, APP-C-QUOTA-APP) | optional, no maximum; limits you declare must still be valid |
 | Other quotas (buckets, Postgres connections, lifecycle rules, RabbitMQ) | as in [Shared services](services.md#limits) | the same rules with the server's values |
-| Access from abroad | only Germany, Austria, Switzerland and Luxembourg; elsewhere refused, except your `abroad_paths` ([Operations](operations.md#access-from-abroad)) | no geo-filter for now: open everywhere; `abroad_paths` is accepted and has no effect |
+| Access from abroad | only Germany, Austria, Switzerland, Luxembourg and the Netherlands; elsewhere refused, except your `abroad_paths` ([Operations](operations.md#access-from-abroad)) | no geo-filter for now: open everywhere; `abroad_paths` is accepted and has no effect |
 | Explicit domain (`domain:` other than your app name) | only a domain the admin has allowed for your app or your owner in the server's registry ([Registration](registration.md#changes-later)) | any free valid hostname that isn't a platform hostname |
 | Certificate for the explicit domain | `certificate: true`, after the DNS check | the same |
 | Owners and app names | registered on this server | registered on this server, separately |
@@ -55,7 +54,7 @@ nothing is requested: fine behind a CDN in "Full" mode, a browser warning withou
 `certificate: true` the deploy first checks the DNS: every A record must be the server's address
 and there must be no AAAA record; otherwise the deploy is refused before anything changes
 (`domain <host> resolves to …, expected …`). Then a certificate is requested for exactly that
-hostname. `certificate` needs workflow v1.1.0 or later.
+hostname.
 
 ## Moving an app to another server
 
@@ -75,7 +74,7 @@ The shops server is new: the first shop teams are its first users.
 1. **Registration**: your GitHub owner must be registered on the shops server. The organization
    `shirtracer` is; for a personal account ask the platform admin ([Registration](registration.md)).
 2. **Your repository**: from the [template](https://github.com/shirtracer/platform-app-template) as
-   usual; in `.github/workflows/deploy.yml` call `…/app.yml@v1.1.0` with `platform: shops` (above).
+   usual; in `.github/workflows/deploy.yml` call `…/app.yml@v1` with `platform: shops` (above).
 3. **Limits**: none on the shops server; leave `deploy.resources.limits` out or set your own.
 4. **Your domain**: `domain: www.your-shop.example` in `platform.yaml`. Point its DNS at the shops server
    (an A record for `5.9.113.248`, no AAAA), then add `certificate: true` for a certificate of its own;

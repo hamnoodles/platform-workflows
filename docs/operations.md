@@ -114,9 +114,9 @@ deploy; the old hostname stops answering.
 ## Access from abroad
 
 This section applies to servers with the geo-filter (`apps`); see [Servers](servers.md#what-differs).
-The platform answers only requests from addresses in Germany, Austria, Switzerland and
-Luxembourg (the allowed countries; Austria, Switzerland and Luxembourg since platform release
-1.2.1). Anyone else gets `403` with a short page (it still says "Zugriff nur aus Deutschland. /
+The platform answers only requests from addresses in Germany, Austria, Switzerland, Luxembourg
+and the Netherlands (the allowed countries; Austria, Switzerland and Luxembourg since platform
+release 1.2.1, the Netherlands since 2.0.0). Anyone else gets `403` with a short page (it still says "Zugriff nur aus Deutschland. /
 Access is only possible from Germany."), for every app, the login and Grafana. Deploys are not
 affected (GitHub's runners reach the platform), and neither are certificates.
 
