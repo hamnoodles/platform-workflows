@@ -140,3 +140,11 @@ def test_offboard_sends_no_secrets(fake, tmp_path):
 def test_unreachable_api_fails(tmp_path):
     proc = run("http://127.0.0.1:9", tmp_path, **deploy_env(ACTIONS_ID_TOKEN_REQUEST_URL="http://127.0.0.1:9/t?x=1"))
     assert proc.returncode != 0
+
+
+def test_the_audience_is_the_selected_servers_url(fake, tmp_path):
+    # The deploy URL of another server (from the "Server" step) is also the token's audience.
+    other = fake + "/another-server"
+    proc = run(fake, tmp_path, **deploy_env(CONTROLLER_URL=other))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert Fake.audience == other and Fake.received[0][0] == "/another-server/v1/deploy"

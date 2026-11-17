@@ -72,3 +72,19 @@ def test_third_party_actions_are_pinned_by_commit():
             if uses:
                 ref = uses.split("@", 1)[1]
                 assert len(ref) == 40 and all(c in "0123456789abcdef" for c in ref), uses
+
+
+def test_the_server_is_chosen_once_by_the_server_step():
+    # D35: the input platform selects the profile; only the "Server" step reads the inputs that
+    # name a server or URL, and every later step uses its outputs.
+    assert WORKFLOW["on"]["workflow_call"]["inputs"]["platform"]["default"] == "apps"
+    assert WORKFLOW["on"]["workflow_call"]["inputs"]["controller-url"]["default"] == ""
+    assert JOBS["validate"]["steps"][0]["id"] == "server"
+    readers = [(job, step.get("name")) for job, spec in JOBS.items() for step in spec.get("steps", [])
+               if "inputs.controller-url" in yaml.safe_dump(step) or "inputs.platform" in yaml.safe_dump(step)]
+    assert readers == [("validate", "Server")]
+
+
+def test_the_apps_pin_keeps_its_name_and_version():
+    # The admin check of every server reads POLICY_BUNDLE (apps) or POLICY_BUNDLE_<SERVER>.
+    assert "platform-policy:2.3.0@sha256:" in WORKFLOW["env"]["POLICY_BUNDLE"]

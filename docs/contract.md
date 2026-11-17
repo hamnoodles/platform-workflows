@@ -16,12 +16,13 @@ Find the rule ID below. Your editor can check `platform.yaml` while you type: th
 | Field | Meaning |
 |-------|---------|
 | `name` (required) | app name: `^[a-z][a-z0-9]{0,30}$`, no `-`; not reserved |
-| `domain` | defaults to the app name (`<name>.apps.platform.shirtracer.gmbh`); anything else must be allowlisted by the admin |
+| `domain` | defaults to the app name (`<name>.apps.<server domain>`); anything else is an explicit domain: on `apps` the admin allows it in the server's registry first, on `shops` any free valid hostname works; one app per hostname ([Servers](servers.md#what-differs)) |
+| `certificate` | `true` requests a certificate for the explicit domain after a DNS check (A record = the server, no AAAA); default `false`: the server's default certificate, e.g. behind a CDN; workflow v1.1.0 or later |
 | `auth` | `forward` (default), `oidc` or `none` |
 | `access.groups` | required with `forward`/`oidc`, at most 20: `<name>-<suffix>` groups are created for your app; other names must be existing platform groups |
 | `access.managers` | platform usernames (at most 20) who manage the members of your own groups; needs at least one own group |
 | `auth_callbacks` | `oidc` only, at most 10: extra redirect paths on your own host besides `/oauth2/callback` |
-| `abroad_paths` | at most 10 paths on your own host reachable from outside Germany (webhooks), each with everything below it; never `/` ([Operations](operations.md#access-from-outside-germany)) |
+| `abroad_paths` | at most 10 paths on your own host reachable from outside the allowed countries (webhooks), each with everything below it; never `/`; has an effect on servers with the geo-filter (`apps`) ([Operations](operations.md#access-from-abroad)) |
 | `services.postgres.extensions` | the database `<name>`; extensions from the allowlist ([Shared services](services.md#postgres)) |
 | `services.redis` | `true`: a Redis user for keys and channels under `<name>:` |
 | `services.s3` | `true`: the bucket `<name>`; your app may create and delete buckets `<name>-*`. Or an object with `lifecycle` rules (at most 10) that expire objects ([Shared services](services.md#letting-objects-expire-lifecycle-rules)) |
@@ -38,7 +39,8 @@ Removing a service revokes access and keeps the data.
   No other `${…}` variables.
 - Networks: `proxy` (the route), `storage` (shared services), `apps` (other apps reach the
   aliases you list there), `default` (private to your app).
-- Every service has CPU and memory limits; routed services have a health check.
+- On a server with limits (`apps`) every service has CPU and memory limits; on every server routed
+  services have a health check.
 - No volumes, ports, privileges, host access or Docker socket; state lives in Postgres or Silo.
 
 ## Manifest rules
@@ -48,7 +50,7 @@ Removing a service revokes access and keeps the data.
 | APP-INPUT | `platform.yaml` or `deploy/compose.yaml` is missing, not a mapping, or has more than one YAML document | one document per file; keep both files at these paths |
 | APP-M-SCHEMA | the manifest doesn't match the schema (unknown field, wrong type, bad name or secret name, too many entries) | compare with the table above; the message names the field |
 | APP-M-RESERVED | the app name is reserved for the platform | choose another name |
-| APP-M-DOMAIN | `domain` is neither the app name nor allowlisted for this app | remove `domain`, or ask the admin to allowlist it |
+| APP-M-DOMAIN | `domain` is neither the app name nor a full domain name, or is a platform hostname; or `certificate: true` without an explicit domain (up to v1.0.x: `domain` not allowlisted for this app) | remove `domain`, or use your own full domain; on `apps` ask the admin to allow it; a shop: set `platform: shops` ([Servers](servers.md)) |
 | APP-M-EXT | an extension is not on the allowlist | use one from [the list](services.md#postgres) or ask the admin |
 | APP-M-SECRET-CLASH | one of your secret names equals a platform credential (e.g. `DATABASE_URL`) | rename your secret |
 | APP-M-ACCESS | `forward`/`oidc` without `access.groups`, `none` with `access`, or managers without an own group | add groups; remove `access` with `auth: none`; add a `<name>-…` group for managers |
@@ -88,9 +90,9 @@ Removing a service revokes access and keeps the data.
 | Rule | Means | Fix |
 |------|-------|-----|
 | APP-C-IMAGE | no `image`, or a moving tag like `latest` | `${APP_IMAGE}`, or `<image>:<version>` / `<image>@sha256:<digest>` |
-| APP-C-LIMITS | a service without `deploy.resources.limits.cpus` and `.memory` | add both |
-| APP-C-QUOTA-SVC | a service above 4 CPUs or 8 GiB | lower the limits |
-| APP-C-QUOTA-APP | the app above 4 CPUs or 8 GiB in total (limits × replicas) | lower limits or replicas |
+| APP-C-LIMITS | servers with limits (`apps`): a service without `deploy.resources.limits.cpus` and `.memory` | add both; a shop: set `platform: shops` ([Servers](servers.md)) |
+| APP-C-QUOTA-SVC | servers with limits (`apps`): a service above 4 CPUs or 8 GiB | lower the limits; a shop: set `platform: shops` |
+| APP-C-QUOTA-APP | servers with limits (`apps`): the app above 4 CPUs or 8 GiB in total (limits × replicas) | lower limits or replicas; a shop: set `platform: shops` |
 | APP-C-HEALTH | a routed service without a working `healthcheck` | add a `healthcheck.test` (not `NONE`, not disabled) |
 
 ### Networks and names

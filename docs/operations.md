@@ -101,12 +101,24 @@ changes (the workflow's release notes say so), compare and take over what applie
 Patch and minor releases of the workflow reach you through `@v1` without any change. Pin
 `@v1.x.y` only if you need an exact version, and move it yourself.
 
-## Access from outside Germany
+## Explicit domains
 
-The platform answers only requests from addresses in Germany. Anyone else gets `403` with a
-short page ("Zugriff nur aus Deutschland. / Access is only possible from Germany."), for every
-app, the login and Grafana. Deploys are not affected (GitHub's runners reach the platform), and
-neither are certificates.
+Your app's own hostname `<name>.apps.<server domain>` always works. For another hostname set
+`domain:` in `platform.yaml`; where it is allowed and when it gets a certificate depends on the
+server and on `certificate: true` ([Servers](servers.md#what-differs)). With `certificate: true`,
+point the domain's DNS at the server first (A record only, no AAAA): the deploy checks it and is
+refused before any change otherwise. Without it the domain is served with the server's default
+certificate (behind a CDN in "Full" mode). Changing or removing `domain` takes effect with the
+deploy; the old hostname stops answering.
+
+## Access from abroad
+
+This section applies to servers with the geo-filter (`apps`); see [Servers](servers.md#what-differs).
+The platform answers only requests from addresses in Germany, Austria, Switzerland and
+Luxembourg (the allowed countries; Austria, Switzerland and Luxembourg since platform release
+1.2.1). Anyone else gets `403` with a short page (it still says "Zugriff nur aus Deutschland. /
+Access is only possible from Germany."), for every app, the login and Grafana. Deploys are not
+affected (GitHub's runners reach the platform), and neither are certificates.
 
 A foreign service that calls your app (a payment provider's webhook, GitHub, a mail service) needs
 its path opened in `platform.yaml`:
@@ -123,8 +135,8 @@ abroad_paths: [/webhooks/stripe]
 - The change takes effect within a minute of the deploy; removing a path closes it again.
 - Available with policy bundle 2.2.0 (platform release 1.1.0); older bundles refuse the field.
 
-A user in Germany who gets the 403 page: their provider's addresses may be listed abroad. Ask
-the platform admin with the user's public address and the time.
+A user in an allowed country who gets the 403 page: their provider's addresses may be listed in
+another country. Ask the platform admin with the user's public address and the time.
 
 Country data: [IP Geolocation by DB-IP](https://db-ip.com), CC BY 4.0.
 
@@ -135,3 +147,7 @@ action `offboard`, and type the app name as confirmation. The platform then keep
 database backup, keeps the buckets until the offsite copy has them, and removes the app, its
 route, credentials and access to the shared services. The name stays bound to your repository
 until the admin purges the kept data ([Registration](registration.md#retiring-an-app)).
+
+The offboard request goes to the server your workflow names (`platform`, default `apps`). To move
+an app to another server, offboard it first, then change `platform`
+([Servers](servers.md#moving-an-app-to-another-server)).
