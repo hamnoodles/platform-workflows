@@ -22,7 +22,7 @@ Find the rule ID below. Your editor can check `platform.yaml` while you type: th
 | `access.groups` | required with `forward`/`oidc`, at most 20: `<name>-<suffix>` groups are created for your app; other names must be existing platform groups |
 | `access.managers` | platform usernames (at most 20) who manage the members of your own groups; needs at least one own group |
 | `auth_callbacks` | `oidc` only, at most 10: extra redirect paths on your own host besides `/oauth2/callback` |
-| `abroad_paths` | at most 10 paths on your own host reachable from outside Germany (webhooks), each with everything below it; never `/`; has an effect on servers with the geo-filter (`apps`) ([Operations](operations.md#access-from-outside-germany)) |
+| `abroad_paths` | at most 10 paths on your own host reachable from outside the allowed countries (webhooks), each with everything below it; never `/`; has an effect on servers with the geo-filter (`apps`) ([Operations](operations.md#access-from-abroad)) |
 | `services.postgres.extensions` | the database `<name>`; extensions from the allowlist ([Shared services](services.md#postgres)) |
 | `services.redis` | `true`: a Redis user for keys and channels under `<name>:` |
 | `services.s3` | `true`: the bucket `<name>`; your app may create and delete buckets `<name>-*`. Or an object with `lifecycle` rules (at most 10) that expire objects ([Shared services](services.md#letting-objects-expire-lifecycle-rules)) |

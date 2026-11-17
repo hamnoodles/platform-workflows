@@ -45,7 +45,7 @@ server's deploy URL, otherwise the workflow fails.
 |---|---|---|
 | CPU and memory limits | required on every service; at most 4 CPUs and 8 GiB per service and per app (APP-C-LIMITS, APP-C-QUOTA-SVC, APP-C-QUOTA-APP) | optional, no maximum; limits you declare must still be valid |
 | Other quotas (buckets, Postgres connections, lifecycle rules, RabbitMQ) | as in [Shared services](services.md#limits) | the same rules with the server's values |
-| Access from outside Germany | refused, except your `abroad_paths` ([Operations](operations.md#access-from-outside-germany)) | no geo-filter for now: open everywhere; `abroad_paths` is accepted and has no effect |
+| Access from abroad | only Germany, Austria, Switzerland and Luxembourg; elsewhere refused, except your `abroad_paths` ([Operations](operations.md#access-from-abroad)) | no geo-filter for now: open everywhere; `abroad_paths` is accepted and has no effect |
 | Explicit domain (`domain:` other than your app name) | only a domain the admin has allowed for your app or your owner in the server's registry ([Registration](registration.md#changes-later)) | any free valid hostname that isn't a platform hostname |
 | Certificate for the explicit domain | `certificate: true`, after the DNS check | the same |
 | Owners and app names | registered on this server | registered on this server, separately |

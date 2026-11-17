@@ -111,13 +111,14 @@ refused before any change otherwise. Without it the domain is served with the se
 certificate (behind a CDN in "Full" mode). Changing or removing `domain` takes effect with the
 deploy; the old hostname stops answering.
 
-## Access from outside Germany
+## Access from abroad
 
 This section applies to servers with the geo-filter (`apps`); see [Servers](servers.md#what-differs).
-The platform answers only requests from addresses in Germany. Anyone else gets `403` with a
-short page ("Zugriff nur aus Deutschland. / Access is only possible from Germany."), for every
-app, the login and Grafana. Deploys are not affected (GitHub's runners reach the platform), and
-neither are certificates.
+The platform answers only requests from addresses in Germany, Austria, Switzerland and
+Luxembourg (the allowed countries; Austria, Switzerland and Luxembourg since platform release
+1.2.1). Anyone else gets `403` with a short page (it still says "Zugriff nur aus Deutschland. /
+Access is only possible from Germany."), for every app, the login and Grafana. Deploys are not
+affected (GitHub's runners reach the platform), and neither are certificates.
 
 A foreign service that calls your app (a payment provider's webhook, GitHub, a mail service) needs
 its path opened in `platform.yaml`:
@@ -134,8 +135,8 @@ abroad_paths: [/webhooks/stripe]
 - The change takes effect within a minute of the deploy; removing a path closes it again.
 - Available with policy bundle 2.2.0 (platform release 1.1.0); older bundles refuse the field.
 
-A user in Germany who gets the 403 page: their provider's addresses may be listed abroad. Ask
-the platform admin with the user's public address and the time.
+A user in an allowed country who gets the 403 page: their provider's addresses may be listed in
+another country. Ask the platform admin with the user's public address and the time.
 
 Country data: [IP Geolocation by DB-IP](https://db-ip.com), CC BY 4.0.
 

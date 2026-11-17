@@ -64,8 +64,8 @@ app's credentials are never shown there.
 - **Logging out and leaving**: sessions end after 8 hours. Someone removed from `<name>-db` can't
   open a new connection from then on; the admin can also switch your team's database access off
   and on again at once.
-- **From abroad**: like everything on the platform, pgAdmin answers only in Germany
-  ([Operations](operations.md)).
+- **From abroad**: like everything on the platform, pgAdmin answers only in the allowed countries
+  (Germany, Austria, Switzerland, Luxembourg; [Operations](operations.md#access-from-abroad)).
 
 pgAdmin keeps no data of its own besides your preferences; downloads and uploads in its file
 manager are gone after a restart.
