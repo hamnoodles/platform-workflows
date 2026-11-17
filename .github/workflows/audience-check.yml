@@ -1,0 +1,66 @@
+---
+# TEMPORARY (admin specs/021-server-select T019): shows on the apps server that an identity token
+# for another server's audience is refused first ("wrong audience"), and that a token with the apps
+# audience from this (non-platform) workflow is refused later. Exists only on the branch
+# server-select; removed by the next commit, never merged. Tokens are masked and never printed.
+name: audience check
+
+"on":
+  push:
+    branches: [server-select]
+    paths: [.github/workflows/audience-check.yml]
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    steps:
+      - name: Foreign audience refused by the apps server
+        run: |
+          python3 - <<'PY'
+          import json, os, sys, urllib.error, urllib.request
+
+          API = "https://deploy.platform.shirtracer.gmbh"
+          env = os.environ
+
+          def token(audience):
+              req = urllib.request.Request(env["ACTIONS_ID_TOKEN_REQUEST_URL"] + "&audience=" + audience)
+              req.add_header("Authorization", "Bearer " + env["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  value = json.load(resp)["value"]
+              print("::add-mask::" + value)
+              return value
+
+          def deploy(audience):
+              body = {"app": "pilot", "commit": env["GITHUB_SHA"], "image": "x",
+                      "policy_version": "2.3.0", "secrets": {}}
+              req = urllib.request.Request(API + "/v1/deploy", data=json.dumps(body).encode(), method="POST")
+              req.add_header("Content-Type", "application/json")
+              req.add_header("Authorization", "Bearer " + token(audience))
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as resp:
+                      return resp.status, resp.read(2000).decode(errors="replace")
+              except urllib.error.HTTPError as err:
+                  return err.code, err.read(2000).decode(errors="replace")
+
+          ok = True
+          for audience, expect in (("https://deploy.shops.invalid", "foreign"), (API, "own")):
+              status, text = deploy(audience)
+              try:
+                  answer = json.loads(text)
+              except ValueError:
+                  answer = {"reason": "(no JSON)"}
+              line = "%s audience %s: HTTP %d, %s, request %s" % (
+                  expect, audience, status, answer.get("reason"), answer.get("request_id"))
+              print(line)
+              with open(env["GITHUB_STEP_SUMMARY"], "a") as summary:
+                  summary.write(line + "\n\n")
+              if expect == "foreign":
+                  ok &= status == 401 and answer.get("reason") == "wrong audience"
+              else:
+                  ok &= status not in (200, 401)
+          sys.exit(0 if ok else 1)
+          PY
