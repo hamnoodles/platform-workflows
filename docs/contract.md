@@ -17,7 +17,7 @@ Find the rule ID below. Your editor can check `platform.yaml` while you type: th
 |-------|---------|
 | `name` (required) | app name: `^[a-z][a-z0-9]{0,30}$`, no `-`; not reserved |
 | `domain` | defaults to the app name (`<name>.apps.<server domain>`); anything else is an explicit domain: on `apps` the admin allows it in the server's registry first, on `shops` any free valid hostname works; one app per hostname ([Servers](servers.md#what-differs)) |
-| `certificate` | `true` requests a certificate for the explicit domain after a DNS check (A record = the server, no AAAA); default `false`: the server's default certificate, e.g. behind a CDN; workflow v1.1.0 or later |
+| `certificate` | `true` requests a certificate for the explicit domain after a DNS check (A record = the server, no AAAA); default `false`: the server's default certificate, e.g. behind a CDN |
 | `auth` | `forward` (default), `oidc` or `none` |
 | `access.groups` | required with `forward`/`oidc`, at most 20: `<name>-<suffix>` groups are created for your app; other names must be existing platform groups |
 | `access.managers` | platform usernames (at most 20) who manage the members of your own groups; needs at least one own group |
@@ -50,7 +50,7 @@ Removing a service revokes access and keeps the data.
 | APP-INPUT | `platform.yaml` or `deploy/compose.yaml` is missing, not a mapping, or has more than one YAML document | one document per file; keep both files at these paths |
 | APP-M-SCHEMA | the manifest doesn't match the schema (unknown field, wrong type, bad name or secret name, too many entries) | compare with the table above; the message names the field |
 | APP-M-RESERVED | the app name is reserved for the platform | choose another name |
-| APP-M-DOMAIN | `domain` is neither the app name nor a full domain name, or is a platform hostname; or `certificate: true` without an explicit domain (up to v1.0.x: `domain` not allowlisted for this app) | remove `domain`, or use your own full domain; on `apps` ask the admin to allow it; a shop: set `platform: shops` ([Servers](servers.md)) |
+| APP-M-DOMAIN | `domain` is neither the app name nor a full domain name, or is a platform hostname; or `certificate: true` without an explicit domain | remove `domain`, or use your own full domain; on `apps` ask the admin to allow it; a shop: set `platform: shops` ([Servers](servers.md)) |
 | APP-M-EXT | an extension is not on the allowlist | use one from [the list](services.md#postgres) or ask the admin |
 | APP-M-SECRET-CLASH | one of your secret names equals a platform credential (e.g. `DATABASE_URL`) | rename your secret |
 | APP-M-ACCESS | `forward`/`oidc` without `access.groups`, `none` with `access`, or managers without an own group | add groups; remove `access` with `auth: none`; add a `<name>-…` group for managers |

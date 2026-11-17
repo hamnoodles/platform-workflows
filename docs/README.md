@@ -19,5 +19,4 @@ your repository and this documentation are all you work with.
 The template: [shirtracer/platform-app-template](https://github.com/shirtracer/platform-app-template).
 The workflow your app calls: [`.github/workflows/app.yml`](../.github/workflows/app.yml), at `@v1`.
 
-These pages are released with the workflow: what you read on `main` describes the latest `v1`;
-anything marked "v1.1.0 or later" arrives with that release.
+These pages are released with the workflow: what you read on `main` describes the latest `v1`.
