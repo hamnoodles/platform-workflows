@@ -63,11 +63,15 @@ env:
   # platform-policy-<server>).
   POLICY_BUNDLE: >-
     ghcr.io/svenm3/platform-policy:2.3.0@sha256:3492de8cf6bbc3552460378fc8f24e57f1f6f85c812f0e58f08018d3ba583276
+  # The shops server's policy bundle (package platform-policy-shops; a pre-release until the
+  # platform's 2.0.0 release, pinned by digest).
+  POLICY_BUNDLE_SHOPS: >-
+    ghcr.io/svenm3/platform-policy-shops:1.0.0-rc.39@sha256:6eedbb53e102ee17ceb7bd98c1ee4098a1b50be25b5646efcd8a8f4ba6e0df00
   # The known servers: {server: {deploy_url, bundle (the env variable of its pin)} | null}.
   # null: known, not available yet (its domain and bundle come with its release).
   PLATFORM_SERVERS: >-
     {"apps": {"deploy_url": "https://deploy.platform.shirtracer.gmbh", "bundle": "POLICY_BUNDLE"},
-    "shops": null}
+    "shops": {"deploy_url": "https://deploy.shops.shirtracer.gmbh", "bundle": "POLICY_BUNDLE_SHOPS"}}
   CONFTEST_IMAGE: >-
     openpolicyagent/conftest:v0.70.1@sha256:82f23e0e1f3faf2f3798f4b1974676c1aed96b05c6656ec6820435c31867c532
 

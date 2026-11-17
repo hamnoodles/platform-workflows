@@ -18,7 +18,7 @@ jobs:
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}
-      # platform: apps # the server: apps (default) or shops; workflow v1.1.0 or later
+      # platform: apps # the server: apps (default) or shops; workflow v1.1.0 or later (@v1.1.0 for shops until @v1 moves)
     secrets:
       PLATFORM_SECRETS: ${{ toJSON(secrets) }}
 ```
