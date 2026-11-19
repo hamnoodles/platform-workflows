@@ -26,6 +26,11 @@ jobs:
 The caller needs `permissions: contents: read, packages: write, id-token: write`. Pushes to the
 default branch deploy; pull requests and other branches only validate and build.
 
+A run has one job that validates and builds (`platform / validate and build`) and, on the default
+branch, the deploy job. Builds use a cache per app (from v1.3.0); a newer push to the same branch
+or pull request cancels the older run while it still validates or builds, but a deploy that has
+started always finishes ([Operations](docs/operations.md#build-cache-and-cancelled-runs)).
+
 Secrets are passed explicitly, not with `secrets: inherit`: inheriting passes nothing to a
 workflow of another owner (personal-account repositories), and app secret names differ per app.
 The workflow takes from `PLATFORM_SECRETS` only the names listed in `platform.yaml` and masks

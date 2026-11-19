@@ -14,6 +14,10 @@
 # never goes with another server's URL or audience. POLICY_BUNDLE is the apps server's pin;
 # another server's pin is POLICY_BUNDLE_<SERVER>. A known server without a profile (null) is
 # not available yet.
+#
+# Fewer billed minutes (D40, v1.3.0): one job validates and builds, with a build cache per app
+# (the tag buildcache in the app's package, written only on the push path); a newer run on the
+# same ref cancels an older one while it validates or builds, but never a request already sent.
 name: platform app
 
 "on":
@@ -75,10 +79,21 @@ env:
     openpolicyagent/conftest:v0.70.1@sha256:82f23e0e1f3faf2f3798f4b1974676c1aed96b05c6656ec6820435c31867c532
 
 jobs:
-  validate:
+  # One job validates and builds (D40): every job is billed rounded up to a full minute, and the
+  # validation alone takes seconds. The request jobs stay separate (environment secrets and the
+  # identity token are granted only there).
+  build:
+    name: validate and build
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      packages: write
+    # A newer run on the same ref cancels this one while it validates or builds; nothing has been
+    # sent to the server yet. The action is part of the group, so a manual offboard and a push
+    # build never cancel each other.
+    concurrency:
+      group: platform-build-${{ github.repository }}-${{ github.ref }}-${{ inputs.action }}
+      cancel-in-progress: true
     outputs:
       app: ${{ steps.manifest.outputs.app }}
       secret_names: ${{ steps.manifest.outputs.secret_names }}
@@ -86,6 +101,7 @@ jobs:
       deploy_branch: ${{ steps.branch.outputs.default }}
       server: ${{ steps.server.outputs.server }}
       deploy_url: ${{ steps.server.outputs.deploy_url }}
+      image: ${{ steps.result.outputs.image }}
     steps:
       # The server's profile: deploy URL (= audience) and bundle pin, before anything is built or
       # sent. Tested by tests/test_server_select.py.
@@ -139,6 +155,9 @@ jobs:
         with:
           persist-credentials: false
 
+      # PUSH (for the later steps, as env.PUSH): the push path is the default branch on a push or a
+      # manual run; only it writes the cache and pushes the image. Set here because a job's env
+      # can't read its own steps.
       - name: Default branch
         id: branch
         env:
@@ -146,8 +165,13 @@ jobs:
         run: |
           if [ "$GITHUB_REF" = "refs/heads/$DEFAULT_BRANCH" ]; then
             echo "default=true" >>"$GITHUB_OUTPUT"
+            case "$GITHUB_EVENT_NAME" in
+              push|workflow_dispatch) echo "PUSH=true" >>"$GITHUB_ENV" ;;
+              *) echo "PUSH=false" >>"$GITHUB_ENV" ;;
+            esac
           else
             echo "default=false" >>"$GITHUB_OUTPUT"
+            echo "PUSH=false" >>"$GITHUB_ENV"
           fi
 
       - name: Policy bundle pin
@@ -203,34 +227,25 @@ jobs:
           echo "app=$(printf '%s' "$doc" | jq -r '.name')" >>"$GITHUB_OUTPUT"
           echo "secret_names=$(printf '%s' "$doc" | jq -c '.secrets // []')" >>"$GITHUB_OUTPUT"
 
-  build:
-    needs: validate
-    if: inputs.action == 'deploy'
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image: ${{ steps.result.outputs.image }}
-    env:
-      PUSH: >-
-        ${{ needs.validate.outputs.deploy_branch == 'true'
-            && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
+      # The build (deploy action only). The cache is the tag buildcache in the app's own package,
+      # with all intermediate layers (mode=max); every build reads it, only the push path writes it.
       - name: Image name
         id: name
+        if: inputs.action == 'deploy'
         run: |
           repo="${GITHUB_REPOSITORY,,}"
-          echo "name=ghcr.io/$repo" >>"$GITHUB_OUTPUT"
-          echo "tag=ghcr.io/$repo:sha-$GITHUB_SHA" >>"$GITHUB_OUTPUT"
+          {
+            echo "name=ghcr.io/$repo"
+            echo "tag=ghcr.io/$repo:sha-$GITHUB_SHA"
+            echo "cache=ghcr.io/$repo:buildcache"
+          } >>"$GITHUB_OUTPUT"
 
-      # Registry credentials only on the push path; pull-request builds run without them.
+      # The push path needs the login (it pushes the image and the cache). Pull requests and manual
+      # runs on other branches log in only to read the cache; a failed login there (a fork's token,
+      # a package that doesn't exist yet) builds without it. Nothing is pushed off the push path.
       - name: Log in to GHCR
-        if: env.PUSH == 'true'
+        if: inputs.action == 'deploy'
+        continue-on-error: ${{ env.PUSH != 'true' }}
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
@@ -240,7 +255,7 @@ jobs:
       # An existing tag is never rebuilt or overwritten (immutable tags).
       - name: Existing image
         id: existing
-        if: env.PUSH == 'true'
+        if: inputs.action == 'deploy' && env.PUSH == 'true'
         env:
           TAG: ${{ steps.name.outputs.tag }}
         run: |
@@ -252,24 +267,31 @@ jobs:
           fi
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-        if: steps.existing.outputs.digest == ''
+        if: inputs.action == 'deploy' && steps.existing.outputs.digest == ''
 
+      # cache-from: a missing or unreadable cache only warns. cache-to: only on the push path, and
+      # ignore-error keeps a failed cache export from failing the deploy.
       - name: Build (and push on the default branch)
         id: build
-        if: steps.existing.outputs.digest == ''
+        if: inputs.action == 'deploy' && steps.existing.outputs.digest == ''
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
           push: ${{ env.PUSH == 'true' }}
           tags: ${{ steps.name.outputs.tag }}
+          cache-from: type=registry,ref=${{ steps.name.outputs.cache }}
+          cache-to: >-
+            ${{ env.PUSH == 'true'
+                && format('type=registry,ref={0},mode=max,ignore-error=true', steps.name.outputs.cache)
+                || '' }}
           # Links a new package to its repository when first published (access follows the repository).
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           provenance: false
 
       - name: Result
         id: result
-        if: env.PUSH == 'true'
+        if: inputs.action == 'deploy' && env.PUSH == 'true'
         env:
           TAG: ${{ steps.name.outputs.tag }}
           EXISTING: ${{ steps.existing.outputs.digest }}
@@ -281,9 +303,14 @@ jobs:
           echo "Image: \`$TAG@$digest\`" >>"$GITHUB_STEP_SUMMARY"
 
   deploy:
-    needs: [validate, build]
+    needs: build
+    # A sent request is never cancelled: a newer deploy on the same ref waits for this one, and of
+    # several waiting deploys only the newest is sent (the older waiting one is cancelled).
+    concurrency:
+      group: platform-deploy-${{ github.repository }}-${{ github.ref }}
+      cancel-in-progress: false
     if: >-
-      inputs.action == 'deploy' && needs.validate.outputs.deploy_branch == 'true'
+      inputs.action == 'deploy' && needs.build.outputs.deploy_branch == 'true'
       && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
@@ -294,11 +321,11 @@ jobs:
       - name: Send the deploy request
         env:
           ACTION: deploy
-          CONTROLLER_URL: ${{ needs.validate.outputs.deploy_url }}
-          APP: ${{ needs.validate.outputs.app }}
+          CONTROLLER_URL: ${{ needs.build.outputs.deploy_url }}
+          APP: ${{ needs.build.outputs.app }}
           IMAGE: ${{ needs.build.outputs.image }}
-          POLICY_VERSION: ${{ needs.validate.outputs.policy_version }}
-          SECRET_NAMES: ${{ needs.validate.outputs.secret_names }}
+          POLICY_VERSION: ${{ needs.build.outputs.policy_version }}
+          SECRET_NAMES: ${{ needs.build.outputs.secret_names }}
           SECRETS_JSON: ${{ toJSON(secrets) }}
         run: &request |
           # app-request: builds the request, sends it with the job's identity token and streams
@@ -377,10 +404,10 @@ jobs:
           PY
 
   offboard:
-    needs: validate
+    needs: build
     if: >-
       inputs.action == 'offboard' && github.event_name == 'workflow_dispatch'
-      && needs.validate.outputs.deploy_branch == 'true'
+      && needs.build.outputs.deploy_branch == 'true'
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment }}
     permissions:
@@ -389,7 +416,7 @@ jobs:
     steps:
       - name: Confirmation
         env:
-          APP: ${{ needs.validate.outputs.app }}
+          APP: ${{ needs.build.outputs.app }}
           CONFIRM: ${{ inputs.confirm }}
         run: |
           if [ "$CONFIRM" != "$APP" ]; then
@@ -400,7 +427,7 @@ jobs:
       - name: Send the offboard request
         env:
           ACTION: offboard
-          CONTROLLER_URL: ${{ needs.validate.outputs.deploy_url }}
-          APP: ${{ needs.validate.outputs.app }}
+          CONTROLLER_URL: ${{ needs.build.outputs.deploy_url }}
+          APP: ${{ needs.build.outputs.app }}
           CONFIRM: ${{ inputs.confirm }}
         run: *request

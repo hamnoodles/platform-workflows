@@ -24,7 +24,7 @@ TEST_SERVERS = {
 
 
 def server_step():
-    steps = WORKFLOW["jobs"]["validate"]["steps"]
+    steps = WORKFLOW["jobs"]["build"]["steps"]
     return next(s for s in steps if s.get("name") == "Server")
 
 
@@ -68,7 +68,7 @@ def test_the_old_url_input_still_works_for_apps(tmp_path, given):
 
 
 def test_the_server_step_comes_first_and_reads_the_inputs():
-    steps = WORKFLOW["jobs"]["validate"]["steps"]
+    steps = WORKFLOW["jobs"]["build"]["steps"]
     assert steps[0]["name"] == "Server" and steps[0]["id"] == "server"
     assert server_step()["env"] == {"PLATFORM": "${{ inputs.platform }}",
                                     "CONTROLLER_URL_INPUT": "${{ inputs.controller-url }}"}
@@ -131,12 +131,12 @@ def test_a_url_input_of_another_server_is_refused(tmp_path):
 def test_deploy_and_offboard_go_to_the_selected_server():
     for job in ("deploy", "offboard"):
         request = next(s for s in WORKFLOW["jobs"][job]["steps"] if s.get("name", "").startswith("Send"))
-        assert request["env"]["CONTROLLER_URL"] == "${{ needs.validate.outputs.deploy_url }}"
-    assert WORKFLOW["jobs"]["validate"]["outputs"]["deploy_url"] == "${{ steps.server.outputs.deploy_url }}"
+        assert request["env"]["CONTROLLER_URL"] == "${{ needs.build.outputs.deploy_url }}"
+    assert WORKFLOW["jobs"]["build"]["outputs"]["deploy_url"] == "${{ steps.server.outputs.deploy_url }}"
 
 
 def test_the_bundle_steps_use_the_selected_pin():
-    steps = {s.get("name"): s for s in WORKFLOW["jobs"]["validate"]["steps"]}
+    steps = {s.get("name"): s for s in WORKFLOW["jobs"]["build"]["steps"]}
     for name in ("Policy bundle pin", "Pull the policy bundle"):
         assert steps[name]["env"]["BUNDLE"] == "${{ steps.server.outputs.bundle }}"
         assert "POLICY_BUNDLE" not in steps[name]["run"]
