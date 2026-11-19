@@ -14,18 +14,28 @@ For the platform admin. App teams call the workflow at `@v1` (see [README](READM
 
 ## Steps
 
+Every release is tested at its exact tag before `v1` moves; apps at `@v1` see it only after that.
+
 1. Merge the pull request into `main`; wait for `ci` on `main`.
-2. Tag and push the release, then move `v1`:
+2. Tag and push the release, **without** moving `v1`:
    ```
    git switch main && git pull
    git tag -a v1.x.y -m "v1.x.y"
    git push origin v1.x.y
+   ```
+3. Test it: point the pilot (`shirtracer/platform-pilot`, `.github/workflows/deploy.yml`) at
+   `@v1.x.y` and push; check what the release changes (a release that changes jobs: a deploy, a
+   pull request, an offboard dry run). The platform accepts every released `v1.x.y`, so no server
+   changes. A bug: fix it in `v1.x.(y+1)` and test that the same way; `v1` moves only to a tested
+   release.
+4. Point the pilot back at `@v1`, then move `v1`:
+   ```
    git tag -f v1 v1.x.y
    git push -f origin v1
    ```
-3. GitHub → Releases → Draft a new release → tag `v1.x.y` → notes (what changed, whether apps need
+5. GitHub → Releases → Draft a new release → tag `v1.x.y` → notes (what changed, whether apps need
    to do anything) → Publish.
-4. Check: an app at `@v1` deploys (its run's "platform" job shows the workflow at the new commit).
+6. Check: an app at `@v1` deploys (its run's "platform" jobs show the workflow at the new commit).
 
 ## Policy pin
 

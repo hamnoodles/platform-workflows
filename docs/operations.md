@@ -15,6 +15,27 @@ deploy request; its summary shows the result and, on a refusal, why.
 - **Same commit again:** changes nothing. After changing a secret, push a new commit
   ([Secrets](secrets.md#changing-a-secret)).
 
+## Build cache and cancelled runs
+
+From workflow v1.3.0; nothing to set up.
+
+- **The cache:** each build keeps a cache of its image layers in your package, as the tag
+  `buildcache` (`ghcr.io/<owner>/<repo>:buildcache`), next to the `sha-<commit>` images. A change
+  that only touches your code reuses the unchanged layers (base image, dependencies) and builds
+  much faster. Every build on the default branch overwrites the cache; pull requests read it but
+  never write it, and nothing from a pull request reaches it. The tag is never deployed.
+- **No cache:** a first build, or a build that can't read the cache, simply runs without it. To
+  force a build without cache, delete the `buildcache` version in the package settings (your
+  repository → Packages → the package → Package settings → manage versions); the next push to the
+  default branch builds from scratch and writes a new one.
+- **Cancelled runs:** a newer push to the same branch, or a new commit on the same pull request,
+  cancels the older run while it still validates or builds; it shows as *cancelled*. A deploy that
+  has started always finishes; a newer deploy waits for it, and of several waiting deploys only
+  the newest is sent. An offboard is never cancelled by a push.
+- **Checks:** the run's jobs are `platform / validate and build` and, on the default branch,
+  `platform / deploy`. If a branch rule of yours requires checks of the platform workflow, require
+  `platform / validate and build`.
+
 ## Rollback
 
 If the routed services don't become healthy, the platform puts the last healthy version back and

@@ -63,7 +63,7 @@ platform to deploy. The run's summary ends with:
 deploy shop: succeeded — shop healthy at https://shop.apps.platform.shirtracer.gmbh
 ```
 
-Pull requests and other branches only validate and build. A refusal names its reason and, for a
+Pull requests and other branches only validate and build (with the build cache, [Operations](operations.md#build-cache-and-cancelled-runs)). A refusal names its reason and, for a
 rule, its ID: look it up in [The contract](contract.md).
 
 ## Next
