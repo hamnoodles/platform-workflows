@@ -149,8 +149,8 @@ deploy; the old hostname stops answering.
 This section applies to servers with the geo-filter (`apps`); see [Servers](servers.md#what-differs).
 The platform answers only requests from addresses in Germany, Austria, Switzerland, Luxembourg
 and the Netherlands (the allowed countries; Austria, Switzerland and Luxembourg since platform
-release 1.2.1, the Netherlands since 2.0.0). Anyone else gets `403` with a short page (it still says "Zugriff nur aus Deutschland. /
-Access is only possible from Germany."), for every app, the login and Grafana. Deploys are not
+release 1.2.1, the Netherlands since 2.0.0). Anyone else gets `403` with a short page naming the allowed countries in German and English, for
+every app, the login and Grafana. Deploys are not
 affected (GitHub's runners reach the platform), and neither are certificates.
 
 A foreign service that calls your app (a payment provider's webhook, GitHub, a mail service) needs
@@ -172,6 +172,26 @@ A user in an allowed country who gets the 403 page: their provider's addresses m
 another country. Ask the platform admin with the user's public address and the time.
 
 Country data: [IP Geolocation by DB-IP](https://db-ip.com), CC BY 4.0.
+
+## Framing
+
+By default only your app itself may show its pages in a frame (`Content-Security-Policy:
+frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`); the platform sets these headers and
+replaces whatever your app sends. If another site needs to show your app in a frame (one of the
+platform's tools, a partner page), name it in `platform.yaml` (from policy 2.5.0 / shops 1.1.0,
+workflow v1.4.0):
+
+```yaml
+frame_ancestors:
+  - https://seoseatool.apps.platform.shirtracer.gmbh
+```
+
+- Up to 10 sites, each `https://host` or `https://host:port`, lower case, no path, no `*`; the
+  pipeline refuses anything else (`APP-M-FRAME-FORM`, `-COUNT`, `-DUP`).
+- Your app's pages then send `frame-ancestors 'self' <your sites>` and no `X-Frame-Options`; other
+  apps keep the default.
+- The change applies within a minute after the deploy reports success.
+- To undo it, remove the field and deploy again.
 
 ## Offboarding
 
