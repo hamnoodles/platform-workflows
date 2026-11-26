@@ -53,15 +53,27 @@ To go back to an older version on purpose, revert the commit on `main` and push.
 
 ## Logs
 
-Everything your services write to stdout and stderr is collected. Grafana
-(`https://grafana.platform.shirtracer.gmbh`, platform login) → Explore → Loki:
+Everything your services write to stdout and stderr is collected. To read it:
+
+1. Open Grafana for your app's server (platform login): `https://grafana.platform.shirtracer.gmbh`
+   for `apps`, `https://grafana.shops.shirtracer.gmbh` for `shops` ([Servers](servers.md)).
+2. Dashboards → **Containers**.
+3. At the top, choose **stack** = your app's name and, if you like, one **service**
+   (e.g. `<name>-web`).
+4. The **Logs** panel at the bottom shows the lines of the chosen time range, newest first; its
+   search field filters them (e.g. `error`). Widen the time range at the top right to look further
+   back.
+
+The same dashboard shows your containers' CPU, memory, network and restarts. With a Grafana role
+that allows Explore, the same logs are searchable there too:
 
 ```
 {stack="<name>"}
 {stack="<name>", service="<name>-web"} |= "error"
 ```
 
-Grafana access needs membership in `grafana-viewers` ([Registration](registration.md)). App
+Grafana access needs membership in `grafana-viewers` ([Registration](registration.md)). Everyone
+with Grafana access can read the logs of every app, so never log secrets, passwords or tokens. App
 teams never get access to the server.
 
 ## Metrics
