@@ -1,11 +1,11 @@
 # Where your repository lives
 
-| | Organization `shirtracer` | Your own GitHub account |
+| | Organization `hamnoodles` | Your own GitHub account |
 |---|---|---|
 | Who owns the code | the organization | you |
 | Registration | none (the organization is registered) | your account, once ([Registration](registration.md)) |
 | Extra steps | none | the GitHub App once, package access per repository (below) |
-| Image | `ghcr.io/shirtracer/<repository>` | `ghcr.io/<you>/<repository>` |
+| Image | `ghcr.io/hamnoodles/<repository>` | `ghcr.io/<you>/<repository>` |
 | Who can be given access | organization members | collaborators you invite (they always get write access) |
 
 Both deploy the same way. The platform accepts owners by their numeric account ID and binds each

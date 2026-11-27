@@ -7,7 +7,7 @@ is fine. A coding assistant can do most of it: [Prompts for an AI assistant](ai-
 
 ## 1. Add the platform's files
 
-Copy these from [shirtracer/platform-app-template](https://github.com/shirtracer/platform-app-template),
+Copy these from [hamnoodles/platform-app-template](https://github.com/hamnoodles/platform-app-template),
 at the same paths:
 
 | File | What to do |

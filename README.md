@@ -14,7 +14,7 @@ From the app template's `.github/workflows/deploy.yml`:
 ```yaml
 jobs:
   platform:
-    uses: shirtracer/platform-workflows/.github/workflows/app.yml@v1
+    uses: hamnoodles/platform-workflows/.github/workflows/app.yml@v1
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}

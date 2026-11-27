@@ -5,10 +5,10 @@ your own work.
 
 ## 1. Create your repository
 
-Open [shirtracer/platform-app-template](https://github.com/shirtracer/platform-app-template) →
+Open [hamnoodles/platform-app-template](https://github.com/hamnoodles/platform-app-template) →
 **Use this template** → **Create a new repository**:
 
-- **Owner**: `shirtracer` (if you're a member) or your own account. The difference is explained
+- **Owner**: `hamnoodles` (if you're a member) or your own account. The difference is explained
   in [Where your repository lives](repositories.md); the organization needs no extra steps.
 - **Visibility**: private is fine.
 - Default branch `main` (as in the template).
@@ -49,7 +49,7 @@ and tags**: "Selected branches and tags", add `main`. Add one secret per name in
 
 ## 5. Registration
 
-In the organization `shirtracer`: nothing to do, your first push claims the app name. In your own
+In the organization `hamnoodles`: nothing to do, your first push claims the app name. In your own
 account: ask the admin once to register your account and do the
 [extra steps](repositories.md#your-own-account-the-extra-steps) ([Registration](registration.md)).
 
