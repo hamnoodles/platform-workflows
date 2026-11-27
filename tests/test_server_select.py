@@ -52,7 +52,7 @@ def test_default_is_the_apps_server(tmp_path):
     assert rc == 0, log
     assert out == {"server": "apps", "deploy_url": APPS_URL, "bundle": ENV["POLICY_BUNDLE"],
                    "version": ENV["POLICY_BUNDLE"].split(":", 1)[1].split("@", 1)[0]}
-    assert out["version"] == "2.4.0"
+    assert out["version"] == "2.5.0"
 
 
 def test_naming_apps_is_the_same_as_the_default(tmp_path):

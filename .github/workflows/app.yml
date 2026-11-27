@@ -66,10 +66,10 @@ env:
   # and its admin check compares both (another server: POLICY_BUNDLE_<SERVER>, its own package
   # platform-policy-<server>).
   POLICY_BUNDLE: >-
-    ghcr.io/svenm3/platform-policy:2.4.0@sha256:835f3c7decceb55a47ef10a94aa42aeef4b8d6b8d3ac4f975f607931c9c82d7e
+    ghcr.io/svenm3/platform-policy:2.5.0@sha256:8272cf91051b394319e4b908952ffba723828b9bb91155cf8e0af4506fa47eee
   # The shops server's policy bundle (package platform-policy-shops).
   POLICY_BUNDLE_SHOPS: >-
-    ghcr.io/svenm3/platform-policy-shops:1.0.0@sha256:d30250144035b2c32d24ed74f41a68c0e785e57e03bd248440a5b51c9a94c773
+    ghcr.io/svenm3/platform-policy-shops:1.1.0@sha256:23533944cdff65d803e4829b9f40b300c4cf2bd890beb62b26fc21f13481de8a
   # The known servers: {server: {deploy_url, bundle (the env variable of its pin)} | null}.
   # null: known, not available yet (its domain and bundle come with its release).
   PLATFORM_SERVERS: >-
