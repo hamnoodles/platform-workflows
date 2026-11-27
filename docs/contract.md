@@ -23,6 +23,7 @@ Find the rule ID below. Your editor can check `platform.yaml` while you type: th
 | `access.managers` | platform usernames (at most 20) who manage the members of your own groups; needs at least one own group |
 | `auth_callbacks` | `oidc` only, at most 10: extra redirect paths on your own host besides `/oauth2/callback` |
 | `abroad_paths` | at most 10 paths on your own host reachable from outside the allowed countries (webhooks), each with everything below it; never `/`; has an effect on servers with the geo-filter (`apps`) ([Operations](operations.md#access-from-abroad)) |
+| `frame_ancestors` | at most 10 sites that may show your app in a frame, each written `https://host` or `https://host:port` (lower case, no path, no `*`); without it only your app itself may (the server's default). From policy 2.5.0 (shops 1.1.0), workflow v1.4.0 ([Operations](operations.md#framing)) |
 | `services.postgres.extensions` | the database `<name>`; extensions from the allowlist ([Shared services](services.md#postgres)) |
 | `services.redis` | `true`: a Redis user for keys and channels under `<name>:` |
 | `services.s3` | `true`: the bucket `<name>`; your app may create and delete buckets `<name>-*`. Or an object with `lifecycle` rules (at most 10) that expire objects ([Shared services](services.md#letting-objects-expire-lifecycle-rules)) |
@@ -56,6 +57,9 @@ Removing a service revokes access and keeps the data.
 | APP-M-ACCESS | `forward`/`oidc` without `access.groups`, `none` with `access`, or managers without an own group | add groups; remove `access` with `auth: none`; add a `<name>-…` group for managers |
 | APP-M-CALLBACK | `auth_callbacks` without `auth: oidc`, or a path containing `..` | use `auth: oidc`, or plain paths like `/auth/callback` |
 | APP-M-ABROAD | `abroad_paths` contains `/`, or a path with `.`, `..` or empty segments | list only the paths foreign services call, like `/webhooks/stripe` |
+| APP-M-FRAME-FORM | a `frame_ancestors` entry isn't an https origin (`http:`, a path or trailing slash, a `*`, upper case, a bare host) | write each site as `https://host` or `https://host:port`, lower case, without path or wildcard |
+| APP-M-FRAME-COUNT | more than 10 `frame_ancestors` entries | list at most 10 sites; ask the admin if you need more |
+| APP-M-FRAME-DUP | a `frame_ancestors` entry twice | list each site once |
 | APP-M-LIFECYCLE | a lifecycle rule names a bucket that isn't `<name>` or `<name>-<suffix>`, its prefix has a `..` segment, two rules share bucket and prefix, or there are more than 10 rules | use your own buckets, plain prefixes, one rule per bucket and prefix |
 | APP-M-RABBITMQ | a RabbitMQ limit is above its maximum (200 connections, 200 queues, 1 GiB per queue), or `queues × queue_bytes` is above 8 GiB | lower the limits ([RabbitMQ](services.md#rabbitmq)) |
 
