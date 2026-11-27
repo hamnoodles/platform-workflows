@@ -21,7 +21,7 @@ If you don't know which one, it is `apps`.
 In your repository's `.github/workflows/deploy.yml`, under `with:`:
 
 ```yaml
-    uses: shirtracer/platform-workflows/.github/workflows/app.yml@v1
+    uses: hamnoodles/platform-workflows/.github/workflows/app.yml@v1
     with:
       action: ${{ inputs.action || 'deploy' }}
       confirm: ${{ inputs.confirm || '' }}
@@ -72,8 +72,8 @@ offboard it there: ask the admin to remove it.
 The shops server is new: the first shop teams are its first users.
 
 1. **Registration**: your GitHub owner must be registered on the shops server. The organization
-   `shirtracer` is; for a personal account ask the platform admin ([Registration](registration.md)).
-2. **Your repository**: from the [template](https://github.com/shirtracer/platform-app-template) as
+   `hamnoodles` is; for a personal account ask the platform admin ([Registration](registration.md)).
+2. **Your repository**: from the [template](https://github.com/hamnoodles/platform-app-template) as
    usual; in `.github/workflows/deploy.yml` call `…/app.yml@v1` with `platform: shops` (above).
 3. **Limits**: none on the shops server; leave `deploy.resources.limits` out or set your own.
 4. **Your domain**: `domain: www.your-shop.example` in `platform.yaml`. Point its DNS at the shops server

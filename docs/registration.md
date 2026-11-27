@@ -1,12 +1,12 @@
 # Registration
 
 Apps aren't registered one by one. The platform admin registers **owners**, on each server
-separately ([Servers](servers.md)): the organization `shirtracer` is registered, and a personal
+separately ([Servers](servers.md)): the organization `hamnoodles` is registered, and a personal
 account is registered once on request. Any repository
 of a registered owner can deploy a new app; its first successful check **binds** the app name to
 that repository, so no other repository can take the name or the app's data afterwards.
 
-## In the organization `shirtracer`
+## In the organization `hamnoodles`
 
 Nothing to ask. Create the repository, pick a free app name and push
 ([Getting started](getting-started.md)). The organization can hold up to 50 apps.

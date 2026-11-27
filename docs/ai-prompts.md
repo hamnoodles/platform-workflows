@@ -27,10 +27,10 @@ Shared services: <any of postgres, redis, s3, rabbitmq (policy 2.3.0), or none>
 My own secrets (names only): <e.g. STRIPE_API_KEY, or none>
 
 Read these first and follow them exactly:
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/getting-started.md
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/contract.md
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/services.md
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/secrets.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/getting-started.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/contract.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/services.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/secrets.md
 
 Rules:
 - Replace "myapp" on every line marked "change:" in platform.yaml and deploy/compose.yaml.
@@ -64,11 +64,11 @@ Login: <forward | oidc | none>
 Who may use it: <platform groups>; managers: <platform usernames>
 
 Read these first and follow them exactly:
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/existing-repository.md
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/contract.md
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/services.md
-- https://raw.githubusercontent.com/shirtracer/platform-workflows/v1/docs/secrets.md
-Take the platform's files from https://github.com/shirtracer/platform-app-template
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/existing-repository.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/contract.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/services.md
+- https://raw.githubusercontent.com/hamnoodles/platform-workflows/v1/docs/secrets.md
+Take the platform's files from https://github.com/hamnoodles/platform-app-template
 (platform.yaml, deploy/compose.yaml, .github/workflows/deploy.yml,
 .platform/platform.schema.json) at the same paths.
 

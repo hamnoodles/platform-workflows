@@ -23,7 +23,7 @@ Every release is tested at its exact tag before `v1` moves; apps at `@v1` see it
    git tag -a v1.x.y -m "v1.x.y"
    git push origin v1.x.y
    ```
-3. Test it: point the pilot (`shirtracer/platform-pilot`, `.github/workflows/deploy.yml`) at
+3. Test it: point the pilot (`hamnoodles/platform-pilot`, `.github/workflows/deploy.yml`) at
    `@v1.x.y` and push; check what the release changes (a release that changes jobs: a deploy, a
    pull request, an offboard dry run). The platform accepts every released `v1.x.y`, so no server
    changes. A bug: fix it in `v1.x.(y+1)` and test that the same way; `v1` moves only to a tested
